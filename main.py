@@ -1,7 +1,7 @@
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
-from socket import socket
+import socket
 import datetime
 import urllib.parse
 import mimetypes
@@ -62,7 +62,7 @@ def run_http(server_class=HTTPServer, handler_class=HttpHandler):
 
 
 def run_udp_server(ip, port):
-    sock = socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
     server = ip, port
     sock.bind(server)
     try:
@@ -91,10 +91,10 @@ def run_udp_client(ip: str, port: int, data: str):
     sock.close()
 
 HTTPserver = Thread(target=run_http)
-# UDPserver = Thread(target=run_udp, args=(UDP_IP, UDP_PORT))
-# UDPclient = Thread(target=run_client, args=(UDP_IP, UDP_PORT))
+UDPserver = Thread(target=run_udp_server, args=(UDP_IP, UDP_PORT))
+UDPclient = Thread(target=run_udp_client, args=(UDP_IP, UDP_PORT))
 
 if __name__ == '__main__':
     HTTPserver.start()
-    # UDPserver.start()
-    # UDPclient.start()
+    UDPserver.start()
+    UDPclient.start()
