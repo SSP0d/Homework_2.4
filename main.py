@@ -10,7 +10,8 @@ import json
 
 UDP_IP = '127.0.0.1'
 UDP_PORT = 5000
-MESSAGE = "Python Web development"
+HTTP_PORT = 3000
+bufferSize = 1024
 
 
 class HttpHandler(BaseHTTPRequestHandler):
@@ -53,7 +54,7 @@ class HttpHandler(BaseHTTPRequestHandler):
 
 
 def run_http(server_class=HTTPServer, handler_class=HttpHandler):
-    server_address = ('', 3000)
+    server_address = ('', HTTP_PORT)
     http = server_class(server_address, handler_class)
     try:
         http.serve_forever()
@@ -62,39 +63,40 @@ def run_http(server_class=HTTPServer, handler_class=HttpHandler):
 
 
 def run_udp_server(ip, port):
-    sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-    server = ip, port
-    sock.bind(server)
-    try:
-        while True:
-            data, address = sock.recvfrom(1024)
-            print(f'Received data: {data.decode()} from: {address}')
-            data_parse = urllib.parse.unquote_plus(data.decode())
-            data_dict: dict = {key: value for key, value in [el.split('=') for el in data_parse.split('&')]}
-            with open("./storage/data.json", "wb") as file:
-                json.dump(data_dict, file)
-            sock.sendto(data, address)
-            print(f'Send data: {data.decode()} to: {address}')
-    except KeyboardInterrupt:
-        print(f'Destroy server')
-    finally:
-        sock.close()
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
+        addr = ip, port
+        server.bind(addr)
+        try:
+            while True:
+                data, address = server.recvfrom(bufferSize)
+                print(f'Received data: {data.decode()} from: {address}')
+                data_parse = urllib.parse.unquote_plus(data.decode())
+                data_dict: dict = {key: value for key, value in [el.split('=') for el in data_parse.split('&')]}
+                with open("./storage/data.json", "wb") as file:
+                    json.dump(data_dict, file)
+                server.sendto(data, address)
+                print(f'Send data: {data.decode()} to: {address}')
+        except KeyboardInterrupt:
+            print(f'Destroy server')
 
 
-def run_udp_client(ip: str, port: int, data: str):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server = ip, port
-    sock.sendto(data, server)
-    print(f'Send data: {data.decode()} to server: {server}')
-    response, address = sock.recvfrom(1024)
-    print(f'Response data: {response.decode()} from address: {address}')
-    sock.close()
+def run_udp_client(ip: str, port: int, data=None):
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as client:
+        server = ip, port
+        client.sendto(data, server)
+        print(f'Send data: {data.decode()} to server: {server}')
+        response, address = client.recvfrom(bufferSize)
+        print(f'Response data: {response.decode()} from address: {address}')
 
-HTTPserver = Thread(target=run_http)
-UDPserver = Thread(target=run_udp_server, args=(UDP_IP, UDP_PORT))
-UDPclient = Thread(target=run_udp_client, args=(UDP_IP, UDP_PORT))
+
+HTTPServer = Thread(target=run_http)
+UDPServer = Thread(target=run_udp_server, args=(UDP_IP, UDP_PORT))
+UDPClient = Thread(target=run_udp_client, args=(UDP_IP, UDP_PORT))
 
 if __name__ == '__main__':
-    HTTPserver.start()
-    UDPserver.start()
-    UDPclient.start()
+    HTTPServer.start()
+    UDPServer.start()
+    UDPClient.start()
+    HTTPServer.join()
+    UDPServer.join()
+    UDPClient.join()
