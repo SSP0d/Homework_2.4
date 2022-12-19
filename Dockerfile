@@ -9,6 +9,7 @@ RUN pip install -r requirements.txt
 
 EXPOSE 5050
 
-VOLUME /storage/data.json
+
+VOLUME ["/storage/data.json"]
 
 ENTRYPOINT main.py

@@ -1,8 +1,8 @@
+from datetime import datetime
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 import socket
-import datetime
 import urllib.parse
 import mimetypes
 import json
@@ -70,10 +70,10 @@ def run_udp_server(ip, port):
             while True:
                 data, address = server.recvfrom(bufferSize)
                 print(f'Received data: {data.decode()} from: {address}')
-                data_parse = urllib.parse.unquote_plus(data.decode())
-                data_dict: dict = {key: value for key, value in [el.split('=') for el in data_parse.split('&')]}
+                data_parse = urllib.parse.parse_qsl(data)
+                result = json.dumps({str(datetime.now()): dict(data_parse)})
                 with open("./storage/data.json", "wb") as file:
-                    json.dump(data_dict, file)
+                    json.dump(result, file)
                 server.sendto(data, address)
                 print(f'Send data: {data.decode()} to: {address}')
         except KeyboardInterrupt:
